@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ContentPage
+    x:Class="ShelfSpace.App.Pages.LoginPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:ShelfSpace.App.Core.ViewModels;assembly=ShelfSpace.App.Core"
+    x:DataType="vm:LoginViewModel"
+    Title="Log in">
+    <ScrollView>
+        <VerticalStackLayout Padding="32" Spacing="14" MaximumWidthRequest="360" HorizontalOptions="Center" VerticalOptions="Center">
+            <Label Text="ShelfSpace" FontSize="30" FontAttributes="Bold" HorizontalOptions="Center" />
+            <Label Text="Log in to manage your inventory." TextColor="Gray" HorizontalOptions="Center" Margin="0,0,0,10" />
+
+            <Label
+                Text="{Binding ErrorMessage}"
+                TextColor="Red"
+                IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotEmptyConverter}}" />
+
+            <Entry Placeholder="Email" Text="{Binding Email}" Keyboard="Email" />
+            <Entry Placeholder="Password" Text="{Binding Password}" IsPassword="True" />
+
+            <Button Text="Log in" Command="{Binding LoginCommand}" IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}" />
+            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+
+            <Button Text="Create an account" Clicked="OnCreateAccountClicked" BackgroundColor="Transparent" TextColor="{AppThemeBinding Light=#512BD4, Dark=#AC99EA}" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

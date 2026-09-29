@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ContentPage
+    x:Class="ShelfSpace.App.Pages.DashboardPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:ShelfSpace.App.Core.ViewModels;assembly=ShelfSpace.App.Core"
+    x:DataType="vm:DashboardViewModel"
+    Title="Dashboard">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Log out" Clicked="OnLogoutClicked" />
+    </ContentPage.ToolbarItems>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="16">
+            <Label
+                Text="{Binding ErrorMessage}"
+                TextColor="Red"
+                IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotEmptyConverter}}" />
+
+            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+
+            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="12">
+                <Frame Grid.Row="0" Grid.Column="0" Padding="16" BorderColor="LightGray">
+                    <VerticalStackLayout>
+                        <Label Text="Total products" TextColor="Gray" FontSize="13" />
+                        <Label Text="{Binding TotalProducts}" FontSize="28" FontAttributes="Bold" />
+                    </VerticalStackLayout>
+                </Frame>
+                <Frame Grid.Row="0" Grid.Column="1" Padding="16" BorderColor="LightGray">
+                    <VerticalStackLayout>
+                        <Label Text="Low stock" TextColor="Gray" FontSize="13" />
+                        <Label Text="{Binding LowStockCount}" FontSize="28" FontAttributes="Bold" TextColor="OrangeRed" />
+                    </VerticalStackLayout>
+                </Frame>
+                <Frame Grid.Row="1" Grid.Column="0" Padding="16" BorderColor="LightGray">
+                    <VerticalStackLayout>
+                        <Label Text="Pending orders" TextColor="Gray" FontSize="13" />
+                        <Label Text="{Binding PendingOrders}" FontSize="28" FontAttributes="Bold" />
+                    </VerticalStackLayout>
+                </Frame>
+                <Frame Grid.Row="1" Grid.Column="1" Padding="16" BorderColor="LightGray">
+                    <VerticalStackLayout>
+                        <Label Text="Total orders" TextColor="Gray" FontSize="13" />
+                        <Label Text="{Binding TotalOrders}" FontSize="28" FontAttributes="Bold" />
+                    </VerticalStackLayout>
+                </Frame>
+            </Grid>
+
+            <Frame Padding="16" BorderColor="LightGray">
+                <VerticalStackLayout>
+                    <Label Text="Revenue (fulfilled orders)" TextColor="Gray" FontSize="13" />
+                    <Label Text="{Binding TotalRevenue, StringFormat='{0:C}'}" FontSize="28" FontAttributes="Bold" TextColor="Green" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <Button Text="Refresh" Command="{Binding LoadCommand}" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

@@ -1,0 +1,20 @@
+# .NET build output (both server and client are .NET projects)
+**/bin/
+**/obj/
+*.user
+*.db
+*.db-shm
+*.db-wal
+
+# MAUI / Windows packaging
+**/AppPackages/
+**/BundleArtifacts/
+**/Manifest.xml
+
+# Editors / OS
+.vs/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log

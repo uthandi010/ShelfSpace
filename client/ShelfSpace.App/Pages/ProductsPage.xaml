@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ContentPage
+    x:Class="ShelfSpace.App.Pages.ProductsPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:models="clr-namespace:ShelfSpace.App.Core.Models;assembly=ShelfSpace.App.Core"
+    xmlns:vm="clr-namespace:ShelfSpace.App.Core.ViewModels;assembly=ShelfSpace.App.Core"
+    x:DataType="vm:ProductsViewModel"
+    Title="Products">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Log out" Clicked="OnLogoutClicked" />
+    </ContentPage.ToolbarItems>
+
+    <Grid RowDefinitions="Auto,Auto,*" Padding="20" RowSpacing="12">
+
+        <!-- Add product form -->
+        <Frame Grid.Row="0" Padding="14" BorderColor="LightGray">
+            <VerticalStackLayout Spacing="8">
+                <Label Text="Add a product" FontAttributes="Bold" />
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="8" RowDefinitions="Auto,Auto" RowSpacing="8">
+                    <Entry Grid.Row="0" Grid.Column="0" Placeholder="SKU" Text="{Binding NewSku}" />
+                    <Entry Grid.Row="0" Grid.Column="1" Placeholder="Name" Text="{Binding NewName}" />
+                    <Entry Grid.Row="1" Grid.Column="0" Placeholder="Price ($)" Text="{Binding NewPrice}" Keyboard="Numeric" />
+                    <Entry Grid.Row="1" Grid.Column="1" Placeholder="Starting quantity" Text="{Binding NewQuantity}" Keyboard="Numeric" />
+                </Grid>
+                <Button Text="Add product" Command="{Binding AddProductCommand}" />
+            </VerticalStackLayout>
+        </Frame>
+
+        <Label
+            Grid.Row="1"
+            Text="{Binding ErrorMessage}"
+            TextColor="Red"
+            IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotEmptyConverter}}" />
+
+        <RefreshView Grid.Row="2" Command="{Binding LoadCommand}" IsRefreshing="{Binding IsBusy}">
+            <CollectionView ItemsSource="{Binding Products}">
+                <CollectionView.EmptyView>
+                    <Label Text="No products yet. Add your first one above." TextColor="Gray" Margin="0,20,0,0" />
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:Product">
+                        <Grid Padding="0,10" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+                            <VerticalStackLayout Grid.Column="0" VerticalOptions="Center">
+                                <Label Text="{Binding Name}" FontAttributes="Bold" />
+                                <Label FontSize="12" TextColor="Gray">
+                                    <Label.FormattedText>
+                                        <FormattedString>
+                                            <Span Text="{Binding Sku}" />
+                                            <Span Text=" · " />
+                                            <Span Text="{Binding Price, StringFormat='{0:C}'}" />
+                                            <Span Text=" · " />
+                                            <Span Text="{Binding QuantityOnHand}" />
+                                            <Span Text=" on hand" />
+                                        </FormattedString>
+                                    </Label.FormattedText>
+                                </Label>
+                                <Label Text="Low stock" TextColor="OrangeRed" FontSize="12" FontAttributes="Bold" IsVisible="{Binding IsLowStock}" />
+                            </VerticalStackLayout>
+                            <Button Grid.Column="1" Text="Restock" Clicked="OnRestockClicked" CommandParameter="{Binding .}" VerticalOptions="Center" />
+                            <Button Grid.Column="2" Text="Delete" Clicked="OnDeleteClicked" CommandParameter="{Binding .}" VerticalOptions="Center" BackgroundColor="IndianRed" TextColor="White" />
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+    </Grid>
+</ContentPage>

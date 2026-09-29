@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  server:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Restore
+        working-directory: server
+        run: dotnet restore
+
+      - name: Build
+        working-directory: server
+        run: dotnet build --no-restore
+
+      - name: Test
+        working-directory: server
+        run: dotnet test --no-build --verbosity normal
+
+  client-core:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      # Only ShelfSpace.App.Core and ShelfSpace.App.Tests build here - both
+      # target plain net9.0, so no MAUI workload or Windows runner is needed
+      # to test the app's real logic.
+      - name: Test
+        run: dotnet test client/ShelfSpace.App.Tests
+
+  client-desktop-build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Install MAUI workload
+        run: dotnet workload install maui-windows
+
+      - name: Build the Windows desktop app
+        working-directory: client/ShelfSpace.App
+        run: dotnet build -f net9.0-windows10.0.19041.0

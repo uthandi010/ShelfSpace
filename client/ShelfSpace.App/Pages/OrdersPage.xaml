@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ContentPage
+    x:Class="ShelfSpace.App.Pages.OrdersPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:models="clr-namespace:ShelfSpace.App.Core.Models;assembly=ShelfSpace.App.Core"
+    xmlns:vm="clr-namespace:ShelfSpace.App.Core.ViewModels;assembly=ShelfSpace.App.Core"
+    x:DataType="vm:OrdersViewModel"
+    Title="Orders">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="New order" Clicked="OnNewOrderClicked" />
+        <ToolbarItem Text="Log out" Clicked="OnLogoutClicked" />
+    </ContentPage.ToolbarItems>
+
+    <Grid RowDefinitions="Auto,*" Padding="20" RowSpacing="12">
+        <Label
+            Grid.Row="0"
+            Text="{Binding ErrorMessage}"
+            TextColor="Red"
+            IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotEmptyConverter}}" />
+
+        <RefreshView Grid.Row="1" Command="{Binding LoadCommand}" IsRefreshing="{Binding IsBusy}">
+            <CollectionView ItemsSource="{Binding Orders}">
+                <CollectionView.EmptyView>
+                    <Label Text="No orders yet. Tap &quot;New order&quot; to create one." TextColor="Gray" Margin="0,20,0,0" />
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:Order">
+                        <Grid Padding="0,10" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+                            <VerticalStackLayout Grid.Column="0" VerticalOptions="Center">
+                                <Label FontAttributes="Bold">
+                                    <Label.FormattedText>
+                                        <FormattedString>
+                                            <Span Text="{Binding CustomerName}" />
+                                            <Span Text=" — " />
+                                            <Span Text="{Binding Total, StringFormat='{0:C}'}" />
+                                        </FormattedString>
+                                    </Label.FormattedText>
+                                </Label>
+                                <Label FontSize="12" TextColor="Gray" Text="{Binding CreatedAtUtc, StringFormat='{0:g}'}" />
+                                <Label FontSize="12" FontAttributes="Bold" Text="{Binding Status}" />
+                            </VerticalStackLayout>
+                            <Button
+                                Grid.Column="1"
+                                Text="Fulfill"
+                                Clicked="OnFulfillClicked"
+                                CommandParameter="{Binding .}"
+                                VerticalOptions="Center"
+                                IsVisible="{Binding Status, Converter={StaticResource EqualsConverter}, ConverterParameter=Pending}" />
+                            <Button
+                                Grid.Column="2"
+                                Text="Cancel"
+                                Clicked="OnCancelClicked"
+                                CommandParameter="{Binding .}"
+                                VerticalOptions="Center"
+                                BackgroundColor="IndianRed"
+                                TextColor="White"
+                                IsVisible="{Binding Status, Converter={StaticResource EqualsConverter}, ConverterParameter=Pending}" />
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+    </Grid>
+</ContentPage>

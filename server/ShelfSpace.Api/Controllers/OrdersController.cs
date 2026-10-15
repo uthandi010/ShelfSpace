@@ -20,6 +20,10 @@ public class OrdersController : ControllerBase
         _context = context;
     }
 
+    private const int MaxItemQuantity = 10_000;
+    private const int MaxOrderLines = 100;
+    private const int MaxCustomerNameLength = 200;
+
     private static OrderResponse ToResponse(Order order) => new(
         order.Id,
         order.CustomerName,
@@ -51,9 +55,17 @@ public class OrdersController : ControllerBase
         {
             return BadRequest(new { message = "Customer name is required." });
         }
+        if (request.CustomerName.Trim().Length > MaxCustomerNameLength)
+        {
+            return BadRequest(new { message = $"Customer name must be at most {MaxCustomerNameLength} characters." });
+        }
         if (request.Items is null || request.Items.Count == 0)
         {
             return BadRequest(new { message = "An order needs at least one item." });
+        }
+        if (request.Items.Count > MaxOrderLines)
+        {
+            return BadRequest(new { message = $"An order can have at most {MaxOrderLines} lines." });
         }
 
         var userId = User.GetUserId();
@@ -63,11 +75,16 @@ public class OrdersController : ControllerBase
         var requestedByProduct = new Dictionary<int, int>();
         foreach (var item in request.Items)
         {
-            if (item.Quantity <= 0)
+            if (item.Quantity <= 0 || item.Quantity > MaxItemQuantity)
             {
-                return BadRequest(new { message = "Item quantities must be greater than zero." });
+                return BadRequest(new { message = $"Item quantities must be between 1 and {MaxItemQuantity}." });
             }
-            requestedByProduct[item.ProductId] = requestedByProduct.GetValueOrDefault(item.ProductId) + item.Quantity;
+            var total = (long)requestedByProduct.GetValueOrDefault(item.ProductId) + item.Quantity;
+            if (total > MaxItemQuantity)
+            {
+                return BadRequest(new { message = $"Total quantity per product cannot exceed {MaxItemQuantity}." });
+            }
+            requestedByProduct[item.ProductId] = (int)total;
         }
 
         var productIds = requestedByProduct.Keys.ToList();
@@ -111,8 +128,15 @@ public class OrdersController : ControllerBase
         }
 
         _context.Orders.Add(order);
-        await _context.SaveChangesAsync();
-        await transaction.CommitAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Conflict(new { message = "Stock changed while placing the order. Please retry." });
+        }
 
         await _context.Entry(order).Collection(o => o.Items).Query().Include(i => i.Product).LoadAsync();
         return Ok(ToResponse(order));
@@ -162,12 +186,23 @@ public class OrdersController : ControllerBase
         {
             if (item.Product is not null)
             {
+                if ((long)item.Product.QuantityOnHand + item.Quantity > int.MaxValue)
+                {
+                    return Conflict(new { message = $"Cancelling would exceed the maximum stock for {item.Product.Name}." });
+                }
                 item.Product.QuantityOnHand += item.Quantity;
             }
         }
 
         order.Status = OrderStatus.Cancelled;
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Conflict(new { message = "Stock changed while cancelling the order. Please retry." });
+        }
         return Ok(ToResponse(order));
     }
 }

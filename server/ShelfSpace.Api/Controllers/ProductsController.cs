@@ -20,6 +20,10 @@ public class ProductsController : ControllerBase
         _context = context;
     }
 
+    private const int MaxSkuLength = 64;
+    private const int MaxNameLength = 200;
+    private const int MaxDescriptionLength = 2000;
+
     private static ProductResponse ToResponse(Product p) => new(
         p.Id, p.Sku, p.Name, p.Description, p.PriceCents, p.QuantityOnHand, p.LowStockThreshold, p.IsLowStock
     );
@@ -43,6 +47,18 @@ public class ProductsController : ControllerBase
         {
             return BadRequest(new { message = "SKU and name are required." });
         }
+        if (request.Sku.Trim().Length > MaxSkuLength)
+        {
+            return BadRequest(new { message = $"SKU must be at most {MaxSkuLength} characters." });
+        }
+        if (request.Name.Trim().Length > MaxNameLength)
+        {
+            return BadRequest(new { message = $"Name must be at most {MaxNameLength} characters." });
+        }
+        if (request.Description is not null && request.Description.Trim().Length > MaxDescriptionLength)
+        {
+            return BadRequest(new { message = $"Description must be at most {MaxDescriptionLength} characters." });
+        }
         if (request.PriceCents < 0)
         {
             return BadRequest(new { message = "Price cannot be negative." });
@@ -50,6 +66,10 @@ public class ProductsController : ControllerBase
         if (request.QuantityOnHand < 0)
         {
             return BadRequest(new { message = "Quantity cannot be negative." });
+        }
+        if (request.LowStockThreshold < 0)
+        {
+            return BadRequest(new { message = "Low stock threshold cannot be negative." });
         }
 
         var userId = User.GetUserId();
@@ -94,10 +114,18 @@ public class ProductsController : ControllerBase
             {
                 return BadRequest(new { message = "Name cannot be blank." });
             }
+            if (request.Name.Trim().Length > MaxNameLength)
+            {
+                return BadRequest(new { message = $"Name must be at most {MaxNameLength} characters." });
+            }
             product.Name = request.Name.Trim();
         }
         if (request.Description is not null)
         {
+            if (request.Description.Trim().Length > MaxDescriptionLength)
+            {
+                return BadRequest(new { message = $"Description must be at most {MaxDescriptionLength} characters." });
+            }
             product.Description = request.Description.Trim();
         }
         if (request.PriceCents is int price)
@@ -117,7 +145,14 @@ public class ProductsController : ControllerBase
             product.LowStockThreshold = threshold;
         }
 
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Conflict(new { message = "The product was changed by another request. Please retry." });
+        }
         return Ok(ToResponse(product));
     }
 
@@ -136,8 +171,20 @@ public class ProductsController : ControllerBase
             return NotFound();
         }
 
+        if ((long)product.QuantityOnHand + request.Quantity > int.MaxValue)
+        {
+            return BadRequest(new { message = "Restock would exceed the maximum stock quantity." });
+        }
+
         product.QuantityOnHand += request.Quantity;
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Conflict(new { message = "The product was changed by another request. Please retry." });
+        }
 
         return Ok(ToResponse(product));
     }

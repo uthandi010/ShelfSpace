@@ -96,8 +96,13 @@ dotnet test ShelfSpace.App.Tests
 - SQLite serializes writes at the connection level, which is safe for this project's scale; a
   multi-writer production database would additionally want a row lock or an optimistic
   concurrency token on `Product.QuantityOnHand` for the stock-decrement step.
-- The JWT signing key in `appsettings.json` is a placeholder for local development only - replace
-  it (and move it to a secret store) before deploying anywhere real.
+- **The JWT signing key is not committed.** `Jwt:Key` must be set (32+ bytes) or the API refuses
+  to start. For local development: `cd server/ShelfSpace.Api && dotnet user-secrets set "Jwt:Key" "<random 32+ byte string>"`
+  (or set the `Jwt__Key` environment variable, which is also how to supply it in deployment).
+- **CORS is closed by default.** List browser origins in `Cors:AllowedOrigins` (e.g. the
+  `Cors__AllowedOrigins__0` env var). The MAUI client is not affected.
+- **Product stock uses optimistic concurrency** (`Product.ConcurrencyStamp`); a conflicting
+  concurrent write returns `409 Conflict` and the caller should retry.
 
 ## What's intentionally left out
 

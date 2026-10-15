@@ -10,7 +10,8 @@ public static class PasswordHasher
 {
     private const int SaltSize = 16;
     private const int HashSize = 32;
-    private const int Iterations = 100_000;
+    private const int Iterations = 600_000;
+    private const int MaxIterations = 10_000_000;
 
     public static string Hash(string password)
     {
@@ -18,6 +19,10 @@ public static class PasswordHasher
         var hash = Rfc2898DeriveBytes.Pbkdf2(password, salt, Iterations, HashAlgorithmName.SHA256, HashSize);
         return $"{Iterations}.{Convert.ToBase64String(salt)}.{Convert.ToBase64String(hash)}";
     }
+
+    /// <summary>True when the stored hash was made with fewer iterations than the current default.</summary>
+    public static bool NeedsRehash(string stored) =>
+        int.TryParse(stored.Split('.', 2)[0], out var iterations) && iterations < Iterations;
 
     public static bool Verify(string password, string stored)
     {
@@ -27,7 +32,7 @@ public static class PasswordHasher
             return false;
         }
 
-        if (!int.TryParse(parts[0], out var iterations))
+        if (!int.TryParse(parts[0], out var iterations) || iterations < 1 || iterations > MaxIterations)
         {
             return false;
         }

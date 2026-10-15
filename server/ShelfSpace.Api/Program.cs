@@ -21,7 +21,14 @@ builder.Services.AddDbContext<ShelfSpaceContext>(options => options.UseSqlite(co
 builder.Services.AddSingleton<TokenService>();
 
 var jwtSection = builder.Configuration.GetSection("Jwt");
-var jwtKey = jwtSection["Key"] ?? throw new InvalidOperationException("Jwt:Key is not configured.");
+var jwtKey = jwtSection["Key"];
+if (string.IsNullOrWhiteSpace(jwtKey) || Encoding.UTF8.GetByteCount(jwtKey) < 32)
+{
+    throw new InvalidOperationException(
+        "Jwt:Key is missing or shorter than 32 bytes. Set it via the Jwt__Key environment variable " +
+        "or, in Development, `dotnet user-secrets set \"Jwt:Key\" \"<random 32+ byte string>\"` " +
+        "from server/ShelfSpace.Api.");
+}
 
 builder.Services
     .AddAuthentication(options =>
@@ -52,10 +59,11 @@ builder.Services.AddCors(options =>
     options.AddPolicy(ClientCorsPolicy, policy =>
     {
         // The MAUI desktop client isn't a browser origin, so CORS doesn't
-        // apply to it - this stays wide open mainly so a browser-based API
-        // testing tool (or a future web client) can also reach the API
-        // during local development.
-        policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+        // apply to it. Browser origins (a future web client, a testing tool)
+        // must be listed in Cors:AllowedOrigins; with none configured, no
+        // cross-origin browser access is allowed.
+        var origins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+        policy.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod();
     });
 });
 

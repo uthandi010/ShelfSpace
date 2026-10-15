@@ -26,6 +26,10 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        // The API refuses to start without a signing key of 32+ bytes.
+        builder.UseSetting("Jwt:Key", "test-only-jwt-signing-key-0123456789-abcdef");
+        builder.UseSetting("Cors:AllowedOrigins:0", "https://allowed.example");
+
         builder.ConfigureServices(services =>
         {
             var descriptor = services.SingleOrDefault(

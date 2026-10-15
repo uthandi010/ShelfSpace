@@ -20,6 +20,19 @@ public class AuthController : ControllerBase
         _tokenService = tokenService;
     }
 
+    private const int MaxNameLength = 100;
+    private const int MaxEmailLength = 254;
+    private const int MaxPasswordLength = 128;
+
+    private static bool IsValidEmail(string email)
+    {
+        if (email.Length > MaxEmailLength)
+        {
+            return false;
+        }
+        return System.Net.Mail.MailAddress.TryCreate(email, out var parsed) && parsed.Address == email;
+    }
+
     [HttpPost("register")]
     public async Task<ActionResult<AuthResponse>> Register(RegisterRequest request)
     {
@@ -34,8 +47,20 @@ public class AuthController : ControllerBase
         {
             return BadRequest(new { message = "Password must be at least 8 characters." });
         }
+        if (request.Password.Length > MaxPasswordLength)
+        {
+            return BadRequest(new { message = $"Password must be at most {MaxPasswordLength} characters." });
+        }
+        if (request.Name.Trim().Length > MaxNameLength)
+        {
+            return BadRequest(new { message = $"Name must be at most {MaxNameLength} characters." });
+        }
 
         var normalizedEmail = request.Email.Trim().ToLowerInvariant();
+        if (!IsValidEmail(normalizedEmail))
+        {
+            return BadRequest(new { message = "Email address is not valid." });
+        }
         var exists = await _context.Users.AnyAsync(u => u.Email == normalizedEmail);
         if (exists)
         {
@@ -59,12 +84,24 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<ActionResult<AuthResponse>> Login(LoginRequest request)
     {
+        if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrEmpty(request.Password) ||
+            request.Email.Length > MaxEmailLength || request.Password.Length > MaxPasswordLength)
+        {
+            return BadRequest(new { message = "Email and password are required." });
+        }
+
         var normalizedEmail = request.Email.Trim().ToLowerInvariant();
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == normalizedEmail);
 
         if (user is null || !PasswordHasher.Verify(request.Password, user.PasswordHash))
         {
             return Unauthorized(new { message = "Invalid email or password." });
+        }
+
+        if (PasswordHasher.NeedsRehash(user.PasswordHash))
+        {
+            user.PasswordHash = PasswordHasher.Hash(request.Password);
+            await _context.SaveChangesAsync();
         }
 
         var token = _tokenService.CreateToken(user);
